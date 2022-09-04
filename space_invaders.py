@@ -17,7 +17,6 @@ button_a = Button(7, invert=False)
 button_b = Button(8, invert=False)
 button_c = Button(9, invert=False)
 button_up = Button(22, invert=False)
-button_down = Button(6, invert=False)
 
 display.set_backlight(1.0)
 display.set_pen(255)
@@ -26,9 +25,6 @@ display.clear()
 
 class Player:
     def __init__(self):
-        self.reset()
-
-    def reset(self):
         self.x = 150
         self.y = 205
         self.w = 32  # 8 pixels scaled 4 times
@@ -40,19 +36,17 @@ class Player:
         self.ammo = 100
 
     def move(self, x, y):
-        if self.x + x > 0 - 15 and self.x + x < WIDTH - self.w + 10:
+        if -15 < self.x + x < WIDTH - self.w + 10:
             self.x += x
             self.y += y
 
     def sprite(self):
-        display.set_spritesheet(character)
         display.sprite(6, 0, self.x, self.y, 4, 255)
 
     def shoot(self):
         if self.ammo > 0:
             self.ammo -= 1
-            bullet = Bullet(self.x + 15, self.y)
-            return bullet
+            return Bullet(self.x + 15, self.y)
 
 
 class Alien:
@@ -79,7 +73,6 @@ class Alien:
             self.is_alive = False
 
     def sprite(self):
-        display.set_spritesheet(character)
         if self.alien_type == 1:
             display.sprite(0 if self.image_number > 0 else 1, 0, self.x, self.y, 3, 255)
         else:
@@ -96,8 +89,7 @@ class Alien:
 
     def shoot(self):
         if not random.randrange(700):
-            bullet = AlienBullet(self.x + self.w // 2, self.y + self.h)
-            return bullet
+            return AlienBullet(self.x + self.w // 2, self.y + self.h)
 
 
 class Bullet:
@@ -115,18 +107,13 @@ class Bullet:
             self.is_alive = False
 
     def sprite(self):
-        display.set_spritesheet(character)
         display.sprite(5, 0, self.x, self.y, 3, 255)
 
 
-class AlienBullet:
+class AlienBullet(Bullet):
     def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.w = 3  # 1 pixel scaled 3 times
-        self.h = 6
+        super().__init__(x, y)
         self.speed = 2
-        self.is_alive = True
 
     def move(self):
         self.y += self.speed
@@ -134,7 +121,6 @@ class AlienBullet:
             self.is_alive = False
 
     def sprite(self):
-        display.set_spritesheet(character)
         display.sprite(15, 0, self.x - 2, self.y, 3, 255)
 
 
@@ -162,7 +148,6 @@ class Ufo:
             self.is_alive = False
 
     def sprite(self):
-        display.set_spritesheet(character)
         display.sprite(7 if self.image_number > 0 else 8, 0, self.x - 2, self.y, 3, 255)
 
 
@@ -177,7 +162,6 @@ class Explosion:
         if self.stage >= 6:
             self.is_alive = False
         else:
-            display.set_spritesheet(character)
             display.sprite(9 + self.stage, 0, self.x, self.y, 3, 255)
             self.stage += 1
 
@@ -193,7 +177,6 @@ class Game:
         self.alien_bullet_sprite_list = []
         self.explosions_sprite_list = []
         self.player = Player()
-        self.SKY = display.create_pen(0, 0, 0)
         self.alien_move_interval = 100
         self.event_counter = 1
 
@@ -234,7 +217,7 @@ class Game:
         return live_sprites
 
     def background(self):
-        display.set_pen(self.SKY)
+        display.set_pen(0)
         display.clear()
 
     def draw(self):
@@ -248,8 +231,6 @@ class Game:
         display.set_pen(255)
         display.text("Score: " + str(self.player.score), 10, 10, 320, 2)
         display.text("Ammo: " + str(self.player.ammo), 228, 10, 320, 2)
-        display.set_pen(0)
-
         display.update()
         time.sleep(0.02)
 
@@ -284,9 +265,6 @@ class Game:
             self.event_counter = 0
 
     def aliens_shoot(self):
-        """
-        Handle the aliens shooting at the player
-        """
         for alien in self.alien_sprite_list:
             if self.player.is_alive:
                 bullet = alien.shoot()
@@ -294,33 +272,21 @@ class Game:
                     self.alien_bullet_sprite_list.append(bullet)
 
     def handle_player_bullets(self):
-        """
-        Handle the player bullet collisions
-        """
         for bullet in self.player_bullet_sprite_list:
             # check if hit alien
-            alien_hit_list = []
             for alien in self.alien_sprite_list:
                 if bullet.y >= alien.y and self.check_collision(bullet, alien):
                     alien.is_alive = False
-                    alien_hit_list.append(alien)
+                    bullet.is_alive = False
+                    explosion = Explosion(alien.x, alien.y)
+                    self.explosions_sprite_list.append(explosion)
+                    self.player.score += 1
 
-            for alien in alien_hit_list:
-                bullet.is_alive = False
-                explosion = Explosion(alien.x, alien.y)
-                self.explosions_sprite_list.append(explosion)
-                self.player.score += 1
-
-            # check if hit alien bullet
-            alien_bullet_hit_list = []
             for alien_bullet in self.alien_bullet_sprite_list:
-                if bullet.y >= alien_bullet.y and self.check_collision(bullet, alien_bullet):
+                if self.check_collision(bullet, alien_bullet):
                     alien_bullet.is_alive = False
-                    alien_bullet_hit_list.append(alien_bullet)
-
-            for alien_bullet in alien_bullet_hit_list:
-                bullet.is_alive = False
-                self.player.score += 1
+                    bullet.is_alive = False
+                    self.player.score += 1
 
             for ufo in self.ufo_sprites_list:
                 if self.check_collision(bullet, ufo):
@@ -331,9 +297,6 @@ class Game:
                     self.player.score += 50
 
     def check_alien_positions(self):
-        """
-        Handle the aliens colliding with the player or touching the bottom of the screen
-        """
         for alien in self.alien_sprite_list:
             if self.check_collision(self.player, alien):
                 # alien hit player
@@ -344,14 +307,10 @@ class Game:
                 self.player.is_alive = False
 
     def handle_alien_bullets(self):
-        """
-        Handle the alien bullet collisions with player
-        """
         for bullet in self.alien_bullet_sprite_list:
             if self.check_collision(self.player, bullet):
                 # alien hit player
                 self.player.is_alive = False
-
 
 game = Game()
 
