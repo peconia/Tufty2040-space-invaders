@@ -40,7 +40,8 @@ def get_applications():
         if (file.endswith(".py") or file.endswith(".mpy")) and file != "main.py":  # include .mpy here!
             # convert the filename from "something_or_other.py" to "Something Or Other"
             # via weird incantations and a sprinkling of voodoo
-            title = " ".join([v[:1].upper() + v[1:] for v in file[:-3].split("_")])
+            ending = 3 if file.endswith(".py") else 4
+            title = " ".join([v[:1].upper() + v[1:] for v in file[:-ending].split("_")])
 
             applications.append(
                 {
