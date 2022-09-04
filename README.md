@@ -19,5 +19,5 @@ In order for the main menu to see this file, you need to edit it to check for .m
 as well as .py ones. See the example in the *main.py* in this repository, or replace
 the main.py on your Tufty with it.
 
-If you make changes of the game and need to compile it to bytecode, you can use
+If you make changes to the game and need to compile it to bytecode, you can use
 [mpy-cross](https://pypi.org/project/mpy-cross/) to do it.
